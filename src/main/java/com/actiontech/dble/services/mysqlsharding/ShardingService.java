@@ -386,6 +386,8 @@ public class ShardingService extends MySQLBasedService implements FrontEndServic
     }
 
     public void executeContextSetTask() {
+        Map<String, String> singleUsrVariables = new LinkedHashMap<>();
+        Map<String, String> singleSysVariables = new LinkedHashMap<>();
         for (Pair<SetHandler.KeyType, Pair<String, String>> task : contextTask) {
             switch (task.getKey()) {
                 case CHARACTER_SET_CLIENT:
@@ -413,10 +415,10 @@ public class ShardingService extends MySQLBasedService implements FrontEndServic
                     this.setSessionReadOnly(Boolean.parseBoolean(enable));
                     break;
                 case SYSTEM_VARIABLES:
-                    this.sysVariables.put(task.getValue().getKey(), task.getValue().getValue());
+                    singleSysVariables.put(task.getValue().getKey(), task.getValue().getValue());
                     break;
                 case USER_VARIABLES:
-                    this.usrVariables.put(task.getValue().getKey(), task.getValue().getValue());
+                    singleUsrVariables.put(task.getValue().getKey(), task.getValue().getValue());
                     break;
                 case CHARSET:
                     this.setCharacterSet(task.getValue().getKey());
@@ -429,6 +431,13 @@ public class ShardingService extends MySQLBasedService implements FrontEndServic
                     break;
             }
         }
+
+        if (singleUsrVariables.size() > 0 || singleSysVariables.size() > 0) {
+            //make sure the var map appear as pair
+            this.usrVariables.add(singleUsrVariables);
+            this.sysVariables.add(singleSysVariables);
+        }
+
     }
 
     public boolean executeInnerSetTask() {
@@ -789,9 +798,10 @@ public class ShardingService extends MySQLBasedService implements FrontEndServic
     }
 
 
-    public Map<String, String> getUsrVariables() {
+    public List<Map<String, String>> getUsrVariables() {
         return usrVariables;
     }
+
 
     public long getLastInsertId() {
         return lastInsertId;
@@ -818,10 +828,9 @@ public class ShardingService extends MySQLBasedService implements FrontEndServic
         return loadDataInfileHandler;
     }
 
-    public Map<String, String> getSysVariables() {
+    public List<Map<String, String>> getSysVariables() {
         return sysVariables;
     }
-
 
     public List<Pair<SetHandler.KeyType, Pair<String, String>>> getContextTask() {
         return contextTask;
